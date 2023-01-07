@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.13;
+
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.0.0/contracts/token/ERC20/IERC20.sol";
+
+
+
+contract TokenLoan {
+    IERC20 public ETH;
+    address public owner1;
+    uint public amount1;
+    IERC20 public BR;
+    address public Bank;
+    uint public amount2;
+    uint public dueDate;
+    uint public pay_Amount;
+
+    constructor(
+        address _ETH,
+        address _owner1,
+        uint _amount1,
+        address _BR,
+        address _Bank,
+        //uint _amount2,
+        uint256 loanDuration
+    ) {
+        ETH = IERC20(_ETH);
+        owner1 = _owner1;
+        amount1 = _amount1;
+        BR = IERC20(_BR);
+        Bank = _Bank;
+        amount2=100*_amount1;
+        dueDate=block.timestamp+loanDuration;
+        pay_Amount=amount1*(block.timestamp)*10+amount1;
+    }
+
+    function swap() public {
+        require(msg.sender == owner1 || msg.sender == Bank, "Not authorized");
+        require(
+            ETH.allowance(owner1, address(this)) >= amount1,
+            "Not Enough ETH Token"
+        );
+        require(
+            BR.allowance(Bank, address(this)) >= amount2,
+            "Bank is going bankrupt"
+        );
+
+        _safeTransferFrom(ETH, owner1, Bank, amount1);
+        _safeTransferFrom(BR, Bank, owner1, amount2);
+    }
+
+    function _safeTransferFrom(
+        IERC20 token,
+        address sender,
+        address recipient,
+        uint amount
+    ) private {
+        bool sent = token.transferFrom(sender, recipient, amount);
+        require(sent, "Token transfer failed");
+    }
+
+    function payLoan() public {
+        require(block.timestamp <= dueDate);
+        require(msg.sender == owner1,"Not Authorised");
+        require(
+            BR.allowance(owner1, address(this)) >= pay_Amount,
+            "Not Enough BR Token"
+        );
+        _safeTransferFrom(BR, owner1, Bank, pay_Amount);
+         _safeTransferFrom(ETH, Bank, owner1, amount1);
+
+        
+    }
+}
